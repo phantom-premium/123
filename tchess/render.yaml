@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: tchess
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: BOT_TOKEN
+        sync: false
+      - key: PORT
+        value: 3000
+      # Секрет для подписи JWT (вход по e-mail/паролю). generateValue создаёт
+      # случайное значение один раз при первом деплое и больше не меняет его,
+      # поэтому токены пользователей остаются рабочими между деплоями.
+      - key: JWT_SECRET
+        generateValue: true
+      # ВАЖНО: строка подключения к Postgres (например, Neon/Supabase).
+      # Если оставить пустой, бот работает на JSON-файлах — рейтинг, аккаунты
+      # и история партий ОБНУЛЯТСЯ при передеплое/долгом простое. Заполните,
+      # чтобы данные сохранялись постоянно. Подробности — в README.
+      - key: DATABASE_URL
+        sync: false
+      # E-mail администраторов через запятую (доступ к «Админ-меню» в профиле).
+      # Аккаунты с этими e-mail нужно зарегистрировать самим — письмом e-mail
+      # при регистрации не подтверждается.
+      - key: ADMIN_EMAILS
+        sync: false

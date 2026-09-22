@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+<title>T-CHESS</title>
+<meta name="color-scheme" content="dark light" />
+<meta name="theme-color" content="#0A0806" id="metaThemeColor" />
+<script>
+  // Тему применяем ДО отрисовки страницы — иначе при светлой теме мелькнул бы тёмный фон.
+  (function () {
+    try {
+      var t = localStorage.getItem('tchess_theme');
+      if (t === 'light' || t === 'dark') {
+        document.documentElement.setAttribute('data-theme', t);
+        document.getElementById('metaThemeColor').setAttribute('content', t === 'light' ? '#EFE8DA' : '#0A0806');
+      }
+    } catch (e) {}
+  })();
+</script>
+
+<script src="chess.js"></script>
+<script src="puzzlecheck.js"></script>
+<script src="bot-engine.js"></script>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ===== HEADER ===== -->
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">♞</span>
+      <span class="brand-name">T-CHESS</span>
+    </div>
+    <div class="topbar-rating" id="topbarRating">
+      <span class="rating-num">🔒</span>
+    </div>
+  </header>
+
+  <!-- ===== PAGES ===== -->
+  <main class="pages">
+
+    <!-- ---------- HOME ---------- -->
+    <section class="page" id="page-home" data-page="home">
+
+      <div class="sponsor-banner" id="sponsorBanner">
+        <div class="sponsor-slide">
+          <span class="sponsor-eyebrow">Организатор турниров</span>
+          <span class="sponsor-title">TikhonCHESS</span>
+        </div>
+        <div class="sponsor-slide">
+          <span class="sponsor-eyebrow">Партнёр</span>
+          <span class="sponsor-title">Блог Шахматиста</span>
+        </div>
+      </div>
+
+      <div class="board-zone">
+        <div class="board-status" id="boardStatus">Нажмите «Найти соперника» или «Решать задачи»</div>
+
+        <div class="board-visual" id="boardVisual">
+          <div class="board-wrap">
+            <div class="board-ranks" id="boardRanks"></div>
+            <div class="board-files-top" id="boardFilesTop"></div>
+            <div class="board" id="board"></div>
+          </div>
+          <div class="board-files" id="boardFiles"></div>
+
+          <div class="captured-rail">
+            <div class="captured-side" id="capturedTop"></div>
+            <div class="captured-side" id="capturedBottom"></div>
+          </div>
+
+          <div class="clocks" id="clocks" hidden>
+            <div class="clock" id="clockTop">05:00</div>
+            <div class="clock" id="clockBottom">05:00</div>
+          </div>
+        </div>
+
+        <div class="search-overlay" id="searchOverlay">
+          <div class="search-overlay-card">
+            <div class="search-ring"></div>
+            <div class="search-overlay-text">Ищем соперника…</div>
+            <div class="search-overlay-sub">Обычно занимает несколько секунд</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="home-actions" id="homeActions">
+        <button class="btn btn-primary" id="btnFindOpponent">
+          <span class="btn-title">Найти соперника</span>
+          <span class="btn-sub">Игра онлайн 1×1</span>
+        </button>
+        <button class="btn btn-secondary" id="btnPuzzles">
+          <span class="btn-title">Решать задачи</span>
+          <span class="btn-sub">Тактика на доске</span>
+        </button>
+      </div>
+
+      <div class="match-actions" id="matchActions" hidden>
+        <button class="btn btn-ghost" id="btnCancelSearch">Отменить поиск</button>
+        <button class="btn btn-ghost" id="btnResign" hidden>Сдаться</button>
+        <button class="btn btn-ghost" id="btnLeaveGame" hidden>Выйти из партии</button>
+        <button class="btn btn-ghost" id="btnBotAgain" hidden>Сыграть ещё раз</button>
+      </div>
+
+      <div class="puzzle-panel" id="puzzlePanel" hidden>
+        <div class="puzzle-meta">
+          <span id="puzzleIndex">Задача 1</span>
+          <span id="puzzleTag">Мат в 1</span>
+        </div>
+        <div class="puzzle-nav">
+          <button class="btn btn-ghost btn-sm" id="btnPuzzleHint">Подсказка</button>
+          <button class="btn btn-ghost btn-sm" id="btnPuzzleSkip">Следующая</button>
+          <button class="btn btn-ghost btn-sm" id="btnPuzzleExit">Выйти</button>
+        </div>
+      </div>
+
+      <footer class="credit-line">
+        Спонсировано <b>TikhonCHESS</b> · Создано при поддержке <b>Блог Шахматиста</b>
+      </footer>
+    </section>
+
+    <!-- ---------- TOURNAMENTS ---------- -->
+    <section class="page" id="page-tournaments" data-page="tournaments" hidden>
+      <h1 class="page-title">Ваши турниры</h1>
+      <p class="page-sub">История партий и текущий прогресс</p>
+
+      <div class="stat-row">
+        <div class="stat-card">
+          <span class="stat-num" id="statPlayed">0</span>
+          <span class="stat-label">сыграно</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statWins">0</span>
+          <span class="stat-label">побед</span>
+        </div>
+        <div class="stat-card">
+          <span class="stat-num" id="statStreak">0</span>
+          <span class="stat-label">серия</span>
+        </div>
+      </div>
+
+      <div class="game-list" id="gameList">
+        <div class="empty-state">Пока нет сыгранных партий. Начните с главной страницы.</div>
+      </div>
+    </section>
+
+    <!-- ---------- PROFILE ---------- -->
+    <section class="page" id="page-profile" data-page="profile" hidden>
+
+      <div class="profile-card">
+        <div class="profile-avatar" id="profileAvatar">?</div>
+        <div class="profile-id" id="profileTChessId">T-CHESS-000000</div>
+        <div class="profile-name" id="profileName">Гость</div>
+        <textarea class="profile-desc" id="profileDesc" maxlength="120" placeholder="Расскажите о себе как о шахматисте…"></textarea>
+
+        <div class="profile-rating">
+          <span class="profile-rating-num" id="profileRatingNum">1200</span>
+          <span class="profile-rating-label">рейтинг</span>
+        </div>
+
+        <button class="btn btn-secondary btn-block" id="btnSaveDesc">Сохранить описание</button>
+        <button class="btn btn-secondary btn-block" id="btnAdmin" hidden>⚙ Админ-меню</button>
+        <button class="btn btn-primary btn-block" id="btnAuth">Войти</button>
+      </div>
+
+      <div class="settings-card">
+        <div class="settings-head">
+          <span class="settings-title">Тема оформления</span>
+          <span class="settings-sub">Хранится на этом устройстве</span>
+        </div>
+        <div class="theme-switch" id="themeSwitch" role="radiogroup" aria-label="Тема оформления">
+          <button class="theme-opt" type="button" role="radio" data-theme-option="dark"><span class="theme-opt-icon">🌙</span><span>Тёмная</span></button>
+          <button class="theme-opt" type="button" role="radio" data-theme-option="light"><span class="theme-opt-icon">☀️</span><span>Светлая</span></button>
+        </div>
+      </div>
+
+      <footer class="credit-line">
+        T-CHESS · создано при поддержке <b>TikhonCHESS</b> и <b>Блог Шахматиста</b>
+      </footer>
+    </section>
+
+  </main>
+
+  <!-- ===== AUTH MODAL (вход / регистрация по e-mail и паролю) ===== -->
+  <div class="auth-overlay" id="authOverlay" hidden>
+    <div class="auth-card">
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="authTabLogin" type="button">Вход</button>
+        <button class="auth-tab" id="authTabRegister" type="button">Регистрация</button>
+      </div>
+
+      <form class="auth-form" id="authFormLogin">
+        <label class="auth-label">
+          E-mail
+          <input class="auth-input" type="email" id="loginEmail" autocomplete="email" required />
+        </label>
+        <label class="auth-label">
+          Пароль
+          <input class="auth-input" type="password" id="loginPassword" autocomplete="current-password" required />
+        </label>
+        <div class="auth-error" id="loginError" hidden></div>
+        <button class="btn btn-primary btn-block" type="submit">Войти</button>
+      </form>
+
+      <form class="auth-form" id="authFormRegister" hidden>
+        <label class="auth-label">
+          Имя
+          <input class="auth-input" type="text" id="registerName" maxlength="40" placeholder="Как вас называть" />
+        </label>
+        <label class="auth-label">
+          E-mail
+          <input class="auth-input" type="email" id="registerEmail" autocomplete="email" required />
+        </label>
+        <label class="auth-label">
+          Пароль
+          <input class="auth-input" type="password" id="registerPassword" autocomplete="new-password" minlength="6" required />
+        </label>
+        <div class="auth-error" id="registerError" hidden></div>
+        <button class="btn btn-primary btn-block" type="submit">Зарегистрироваться</button>
+      </form>
+
+      <button class="btn btn-ghost btn-block" id="authClose" type="button">Продолжить как гость</button>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN MENU (задачи: создание / редактирование / удаление) ===== -->
+  <div class="auth-overlay admin-overlay" id="adminOverlay" hidden>
+    <div class="admin-card">
+
+      <!-- список задач -->
+      <div id="adminViewList">
+        <div class="admin-head">
+          <h2 class="admin-title">Админ-меню</h2>
+          <button class="admin-x" id="btnAdminClose" type="button" aria-label="Закрыть">✕</button>
+        </div>
+        <p class="admin-sub">Задачи: <b id="adminCount">0</b></p>
+        <button class="btn btn-primary btn-block" id="btnAdminNew" type="button">＋ Создать задачу</button>
+        <div class="admin-error" id="adminListError" hidden></div>
+        <div class="admin-list" id="adminList"></div>
+      </div>
+
+      <!-- редактор задачи -->
+      <div id="adminViewEdit" hidden>
+        <div class="admin-head">
+          <h2 class="admin-title" id="adminEditTitle">Новая задача</h2>
+          <button class="admin-x" id="btnAdminEditClose" type="button" aria-label="Назад">✕</button>
+        </div>
+
+        <label class="auth-label" for="adminTag">Название темы</label>
+        <input class="auth-input" id="adminTag" type="text" maxlength="60" placeholder="Мат в 2 · белые" autocomplete="off" />
+
+        <label class="auth-label" for="adminFen">Позиция (FEN)</label>
+        <input class="auth-input admin-mono" id="adminFen" type="text" placeholder="6k1/5ppp/8/8/8/8/8/R5K1 w - - 0 1"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+
+        <div class="admin-board-block">
+          <div class="board-wrap admin-board-wrap"><div class="board" id="adminBoard"></div></div>
+          <div class="admin-board-info" id="adminBoardInfo">Введите позицию — здесь появится доска</div>
+        </div>
+
+        <label class="auth-label" for="adminSolution">Решение — ходы по очереди</label>
+        <input class="auth-input admin-mono" id="adminSolution" type="text" placeholder="a1a8"
+               autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" />
+        <div class="admin-hint-text">
+          Ходьте прямо на доске выше или пишите ходы через пробел (откуда-куда: <b>e2e4 e7e5</b>).
+          Первый ход — за сторону, которая ходит в позиции; ответы соперника тоже записываются.
+          Последним всегда идёт ход решающего.
+        </div>
+        <div class="admin-solution-tools">
+          <button class="btn btn-ghost btn-sm" id="btnAdminUndo" type="button">↶ Убрать ход</button>
+          <button class="btn btn-ghost btn-sm" id="btnAdminClear" type="button">Очистить</button>
+        </div>
+
+        <label class="auth-label" for="adminHint">Подсказка (необязательно)</label>
+        <textarea class="auth-input admin-textarea" id="adminHint" maxlength="200" rows="2" placeholder="Что должен заметить игрок"></textarea>
+
+        <div class="admin-status" id="adminStatus"></div>
+        <div class="admin-actions">
+          <button class="btn btn-ghost" id="btnAdminCancel" type="button">Отмена</button>
+          <button class="btn btn-primary" id="btnAdminSave" type="button" disabled>Сохранить</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== MODE MODAL («Найти соперника»: друг или случайный) ===== -->
+  <div class="auth-overlay mode-overlay" id="modeOverlay" hidden>
+    <div class="auth-card mode-card">
+
+      <!-- шаг 1: выбор -->
+      <div class="mode-step" id="modeStepChoice">
+        <h2 class="mode-title">Найти соперника</h2>
+        <p class="mode-sub">С кем сыграем?</p>
+        <div class="mode-buttons">
+          <button class="btn btn-secondary btn-block" id="btnModeFriend" type="button">
+            <span class="btn-title">Играть с другом</span>
+            <span class="btn-sub">По коду приглашения</span>
+          </button>
+          <button class="btn btn-primary btn-block" id="btnModeRandom" type="button">
+            <span class="btn-title">Найти случайного противника</span>
+            <span class="btn-sub">Игра онлайн 1×1</span>
+          </button>
+          <button class="btn btn-secondary btn-block" id="btnModeBot" type="button">
+            <span class="btn-title">Играть с ботом</span>
+            <span class="btn-sub">Партия с рейтингом</span>
+          </button>
+        </div>
+        <button class="btn btn-ghost btn-block" id="btnModeClose" type="button">Отмена</button>
+      </div>
+
+      <!-- шаг: игра с ботом -->
+      <div class="mode-step" id="modeStepBot" hidden>
+        <h2 class="mode-title">Игра с ботом</h2>
+        <p class="mode-sub" id="botStepHint">Рейтинговая партия: очки считаются по рейтингу бота</p>
+
+        <div class="bot-group">
+          <div class="bot-label" id="botRatedLabel">Режим партии</div>
+          <div class="bot-mode-switch" id="botRatedSwitch" role="radiogroup" aria-labelledby="botRatedLabel">
+            <button class="bot-mode-opt" type="button" role="radio" data-rated="1">
+              <span class="bot-mode-icon">🏆</span><span>С рейтингом</span>
+            </button>
+            <button class="bot-mode-opt" type="button" role="radio" data-rated="0">
+              <span class="bot-mode-icon">🎓</span><span>Без рейтинга</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bot-group">
+          <div class="bot-label" id="botLevelLabel">Уровень бота</div>
+          <div class="bot-levels" id="botLevels" role="radiogroup" aria-labelledby="botLevelLabel">
+            <button class="bot-opt" type="button" role="radio" data-level="1">
+              <span class="bot-opt-title">Лёгкий</span>
+              <span class="bot-opt-sub">Для разминки</span>
+              <span class="bot-opt-rate">рейтинг 700</span>
+            </button>
+            <button class="bot-opt" type="button" role="radio" data-level="2">
+              <span class="bot-opt-title">Средний</span>
+              <span class="bot-opt-sub">Играет осмысленно</span>
+              <span class="bot-opt-rate">рейтинг 1100</span>
+            </button>
+            <button class="bot-opt" type="button" role="radio" data-level="3">
+              <span class="bot-opt-title">Сильный</span>
+              <span class="bot-opt-sub">Думает глубоко</span>
+              <span class="bot-opt-rate">рейтинг 1700</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="bot-group">
+          <div class="bot-label" id="botColorLabel">За кого играете? Нажмите — партия начнётся</div>
+          <div class="bot-colors" id="botColors">
+            <button class="bot-chip" type="button" data-color="w"><span class="bot-chip-icon">♔</span><span>Белыми</span></button>
+            <button class="bot-chip" type="button" data-color="r"><span class="bot-chip-icon">🎲</span><span>Случайно</span></button>
+            <button class="bot-chip" type="button" data-color="b"><span class="bot-chip-icon">♚</span><span>Чёрными</span></button>
+          </div>
+        </div>
+
+        <button class="btn btn-ghost btn-block" id="btnBotBack" type="button">Назад</button>
+      </div>
+
+      <!-- шаг 2: игра с другом -->
+      <div class="mode-step" id="modeStepFriend" hidden>
+        <p class="friend-lead">Ваш код для игры с другом<span class="friend-lead-sub">действует 10 минут</span></p>
+        <button class="friend-code" id="friendCodeBox" type="button" aria-label="Скопировать код">
+          <span class="friend-code-value" id="friendCodeValue">······</span>
+          <span class="friend-code-copy" id="friendCodeHint">Нажмите, чтобы скопировать</span>
+        </button>
+
+        <div class="friend-or"><span>или</span></div>
+
+        <label class="auth-label" for="friendCodeInput">Введите код друга</label>
+        <div class="friend-join-row">
+          <input class="auth-input friend-input" id="friendCodeInput" type="text"
+                 placeholder="ABC123" autocomplete="off" autocapitalize="characters"
+                 autocorrect="off" spellcheck="false" enterkeyhint="go" />
+          <button class="btn btn-primary friend-join-btn" id="btnFriendJoin" type="button" disabled>Играть</button>
+        </div>
+        <div class="auth-error" id="friendError" hidden></div>
+
+        <button class="btn btn-ghost btn-block" id="btnFriendBack" type="button">Назад</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== BOTTOM NAV — LIQUID GLASS PILL ===== -->
+  <div class="bottombar-wrap">
+    <nav class="bottombar" id="bottombar">
+      <div class="nav-indicator" id="navIndicator"></div>
+      <button class="nav-btn active" data-nav="home">
+        <span class="nav-icon">♟</span>
+        <span class="nav-label">Главная</span>
+      </button>
+      <button class="nav-btn" data-nav="tournaments">
+        <span class="nav-icon">🏆</span>
+        <span class="nav-label">Турниры</span>
+      </button>
+      <button class="nav-btn" data-nav="profile">
+        <span class="nav-icon">♔</span>
+        <span class="nav-label">Профиль</span>
+      </button>
+    </nav>
+  </div>
+
+  <div class="toast" id="toast" hidden></div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
